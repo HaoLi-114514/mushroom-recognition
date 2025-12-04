@@ -36,4 +36,56 @@ def main():
         cls_path = os.path.join(SOURCE_DIR, cls)
         files = os.listdir(cls_path)
         # 筛选图片文件
-        images = [f for f in files if f.lower().endswith(('.png', '.
+        images = [f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]
+        
+        # 随机打乱
+        random.shuffle(images)
+        
+        # 计算划分数量
+        count = len(images)
+        train_idx = int(count * SPLIT_RATIO[0])
+        val_idx = int(count * (SPLIT_RATIO[0] + SPLIT_RATIO[1]))
+        
+        splits = {
+            'train': images[:train_idx],
+            'val': images[train_idx:val_idx],
+            'test': images[val_idx:]
+        }
+
+        print(f"   正在处理类别 '{cls}' (共 {count} 张)...")
+
+        for split_name, file_list in splits.items():
+            for file_name in file_list:
+                src = os.path.join(cls_path, file_name)
+                
+                # 注意：必须保存为 .png 才能保留去背景后的透明通道
+                new_name = os.path.splitext(file_name)[0] + ".png"
+                dst = os.path.join(TARGET_DIR, split_name, cls, new_name)
+                
+                try:
+                    with open(src, 'rb') as i:
+                        with open(dst, 'wb') as o:
+                            input_img = i.read()
+                            
+                            # === 核心步骤：AI 智能去背景 ===
+                            subject = remove(input_img) 
+                            
+                            o.write(subject)
+                    
+                    total_images += 1
+                    # 每处理 100 张提示一下进度
+                    if total_images % 100 == 0:
+                        print(f"      已累计处理 {total_images} 张图片...")
+                        
+                except Exception as e:
+                    print(f"      [跳过坏图] {file_name}: {e}")
+
+    print("-" * 30)
+    print(f">>> 处理完成！所有去背景图片已保存在: {TARGET_DIR}/")
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        print(f"发生未知错误: {e}")
+    input("按回车键退出...")
